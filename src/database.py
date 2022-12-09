@@ -31,23 +31,3 @@ class DataBase:
         str_user_id = str(user_id)
         database = DataBase.read_database()
         return database['cities'].get(str_user_id)
-
-    @classmethod
-    def get_traffic_status(cls, city):
-        database = DataBase.read_database()
-        return database['mock']['trafficStatus'].get(city, 0)
-
-    @classmethod
-    def get_weather(cls, city, day):
-        database = DataBase.read_database()
-        return database['mock']['weather'][day].get(city, 0)
-
-    @classmethod
-    def get_poster(cls, city, day):
-        database = DataBase.read_database()
-        return database['mock']['poster'][day].get(city, [])
-
-    @classmethod
-    def get_currency(cls):
-        database = DataBase.read_database()
-        return database['mock']['currency']

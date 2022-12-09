@@ -8,6 +8,9 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 
 from database import DataBase
+from weather import get_weather_in_city
+from curencies import get_currency_rates
+import google_sheets
 
 load_dotenv()
 
@@ -33,7 +36,6 @@ def init_user_city(user_id, vk_api):
         send_message(vk_api, user_id, f"Ваш город {city}?", keyboard)
     else:
         request_to_fill_user_city(user_id, vk_api)
-    print(response)
 
 
 def get_user_city(vk_api, user_id):
@@ -48,7 +50,6 @@ def send_message(vk_api, user_id, message, keyboard=None):
     )
     if keyboard:
         options['keyboard'] = keyboard.get_keyboard()
-    print(options)
     vk_api.messages.send(**options)
 
 
@@ -71,8 +72,8 @@ def start(event, vk_api):
 
 def get_weather(event, vk_api):
     keyboard = VkKeyboard(inline=True)
-    keyboard.add_button('Сегодня', color=VkKeyboardColor.POSITIVE, payload={'type': 'weather', 'day': 'today'})
-    keyboard.add_button('Завтра', color=VkKeyboardColor.POSITIVE, payload={'type': 'weather', 'day': 'tomorrow'})
+    keyboard.add_button('Сегодня', color=VkKeyboardColor.POSITIVE, payload={'type': 'weather', 'day': 'сегодня'})
+    keyboard.add_button('Завтра', color=VkKeyboardColor.POSITIVE, payload={'type': 'weather', 'day': 'завтра'})
     user_id = event.object.message['from_id']
     send_message(vk_api, user_id, "Выберите день, за который хотите получить погоду", keyboard)
 
@@ -83,14 +84,14 @@ def get_detail_weather(event, vk_api, day):
     if city is None:
         request_to_fill_user_city(user_id, vk_api)
         return
-    weather = DataBase.get_weather(city, day)
+    weather = get_weather_in_city(city)
     send_message(vk_api, user_id, f'В городе {weather} градусов {"тепла" if weather > 0 else "холода"}')
 
 
 def get_poster(event, vk_api):
     keyboard = VkKeyboard(inline=True)
-    keyboard.add_button('Сегодня', color=VkKeyboardColor.POSITIVE, payload={'type': 'poster', 'day': 'today'})
-    keyboard.add_button('Завтра', color=VkKeyboardColor.POSITIVE, payload={'type': 'poster', 'day': 'tomorrow'})
+    keyboard.add_button('Сегодня', color=VkKeyboardColor.POSITIVE, payload={'type': 'poster', 'day': 'сегодня'})
+    keyboard.add_button('Завтра', color=VkKeyboardColor.POSITIVE, payload={'type': 'poster', 'day': 'завтра'})
     user_id = event.object.message['from_id']
     send_message(vk_api, user_id, "Выберите день, за который хотите получить афишу", keyboard)
 
@@ -101,16 +102,16 @@ def get_detail_poster(event, vk_api, day):
     if city is None:
         request_to_fill_user_city(user_id, vk_api)
         return
-    posters = DataBase.get_poster(city, day)
+    posters = google_sheets.get_posters(city, day)
     out = []
     for poster in posters:
-        out.append(f"{poster['event']}\n\n{poster['price']}\n{poster['link']}")
-    send_message(vk_api, user_id, 'Афиша\n' + '\n\n'.join(out))
+        out.append(f"{poster['event']}\n{poster['price']}\n{poster['link']}")
+    send_message(vk_api, user_id, 'Афиша\n\n' + '\n\n'.join(out))
 
 
 def get_currency(event, vk_api):
     user_id = event.object.message['from_id']
-    currencies = DataBase.get_currency()
+    currencies = get_currency_rates()
     out = []
     for k, v in currencies.items():
         out.append(f"1 {k} = {v} RUB")
@@ -123,7 +124,7 @@ def get_traffic_status(event, vk_api):
     if city is None:
         request_to_fill_user_city(user_id, vk_api)
         return
-    status = DataBase.get_traffic_status(city)
+    status = google_sheets.get_traffic_status(city)
     send_message(vk_api, user_id, f"В городе пробки {status} баллов")
 
 
